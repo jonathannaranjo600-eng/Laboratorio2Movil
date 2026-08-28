@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, Button, Image } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  Image,
+  TextInput,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, agregarFoto }) {
   const [permisoCamara, pedirPermisoCamara] = useCameraPermissions();
   const [permisoUbicacion, pedirPermisoUbicacion] =
     Location.useForegroundPermissions();
@@ -11,6 +20,7 @@ export default function HomeScreen({ navigation }) {
   const [mostrarCamara, setMostrarCamara] = useState(false);
   const [foto, setFoto] = useState(null);
   const [ubicacion, setUbicacion] = useState(null);
+  const [descripcion, setDescripcion] = useState('');
   const cameraRef = useRef(null);
 
   // Pedimos los dos permisos una sola vez, apenas se abre esta pantalla.
@@ -40,6 +50,30 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
+  function guardarFoto() {
+    if (descripcion.trim() === '') {
+      Alert.alert('Falta descripción', 'Escribe una descripción antes de guardar.');
+      return;
+    }
+
+    const fotoNueva = {
+      id: Date.now(),
+      image: foto.uri,
+      latitude: ubicacion.latitude,
+      longitude: ubicacion.longitude,
+      description: descripcion,
+    };
+
+    agregarFoto(fotoNueva);
+
+    // Limpiamos todo para poder tomar la siguiente fotografía.
+    setFoto(null);
+    setUbicacion(null);
+    setDescripcion('');
+
+    Alert.alert('Guardado', 'La fotografía se guardó en la bitácora.');
+  }
+
   // Mientras la cámara está abierta, mostramos solo la vista de la cámara.
   if (mostrarCamara) {
     return (
@@ -53,7 +87,7 @@ export default function HomeScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titulo}>Tomar Fotografía</Text>
       <Text style={styles.texto}>
         Aquí se tomará la fotografía, se obtendrá la ubicación y se escribirá
@@ -84,6 +118,21 @@ export default function HomeScreen({ navigation }) {
         </View>
       )}
 
+      {foto && ubicacion && (
+        <TextInput
+          style={styles.input}
+          placeholder="Escribe una descripción..."
+          value={descripcion}
+          onChangeText={setDescripcion}
+        />
+      )}
+
+      {foto && ubicacion && (
+        <View style={styles.espacio}>
+          <Button title="Guardar en la Bitácora" onPress={guardarFoto} />
+        </View>
+      )}
+
       <View style={styles.espacio}>
         <Button title="Tomar Fotografía" onPress={abrirCamara} />
       </View>
@@ -94,7 +143,7 @@ export default function HomeScreen({ navigation }) {
           onPress={() => navigation.navigate('Fotografias')}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -124,6 +173,14 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#999',
+    borderRadius: 5,
+    padding: 10,
+    width: '100%',
+    marginTop: 10,
   },
   espacio: {
     marginTop: 10,
